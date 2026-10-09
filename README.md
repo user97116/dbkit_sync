@@ -44,10 +44,8 @@ await sync.sync();
 
 ```yaml
 dependencies:
-  dbkit:
-    path: ../dbkit
-  dbkit_sync:
-    path: ../dbkit_sync
+  dbkit: ^0.4.1
+  dbkit_sync: ^0.1.1
 ```
 
 ```dart
