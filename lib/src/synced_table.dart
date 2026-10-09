@@ -10,7 +10,7 @@ import 'utils.dart';
 /// Write-tracking wrapper around a [TableRef].
 ///
 /// Reads delegate straight through; every write additionally enqueues an
-/// [OutboxEntry] so [DbSync] can push it later. Pull-side applies bypass
+/// [OutboxEntry] so `DbSync` can push it later. Pull-side applies bypass
 /// this wrapper (they write via the raw `Db`) so remote changes never
 /// re-enter the outbox.
 ///

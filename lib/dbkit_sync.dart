@@ -1,6 +1,6 @@
 /// dbkit_sync — offline-first sync for dbkit.
 ///
-/// Local-first: writes queue in `_sync_outbox`, [DbSync.sync] pulls remote
+/// Local-first: writes queue in `_sync_outbox`, `DbSync.sync` pulls remote
 /// changes first (resolving conflicts), then pushes the queue. Backends are pluggable — Firebase
 /// (Firestore), Supabase, generic REST, or fully custom.
 ///

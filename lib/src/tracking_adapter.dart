@@ -23,9 +23,9 @@ import 'utils.dart';
 /// ```
 ///
 /// Outbox bookkeeping rows (`_sync_outbox`, `_sync_state`) never re-enter
-/// the queue. Pull-side applies in [DbSync] write through the same [Db],
+/// the queue. Pull-side applies in `DbSync` write through the same [Db],
 /// so they WOULD be re-queued by this adapter — to avoid push loops,
-/// [DbSync] is not enough alone here: prefer the [SyncTableRef] wrapper as
+/// `DbSync` is not enough alone here: prefer the `SyncTableRef` wrapper as
 /// the primary API, or route pull writes through the inner adapter. This
 /// adapter exposes [runUntracked] for exactly that.
 ///

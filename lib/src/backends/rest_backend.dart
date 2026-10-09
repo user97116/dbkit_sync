@@ -1,8 +1,10 @@
 /// Generic HTTP backend for any custom sync server.
 library;
 
+import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
+
+import 'package:http/http.dart' as http;
 
 import '../sync_backend.dart';
 import '../sync_change.dart';
@@ -15,9 +17,15 @@ import '../sync_change.dart';
 ///   -> {"changes": [SyncChange JSON, ...]}
 /// ```
 ///
-/// The server can be anything (Dart shelf, Node, Go, Firebase Functions,
-/// Supabase Edge Functions). Extra [headers] (e.g. `Authorization`) are
-/// sent on every request. Times out after [timeout] per request.
+/// Built on `package:http`, so it works on every Dart and Flutter target
+/// including the web. The server can be anything (Dart shelf, Node, Go,
+/// Firebase Functions, Supabase Edge Functions). Extra [headers] (e.g.
+/// `Authorization`) are sent on every request. Each request times out after
+/// [timeout].
+///
+/// Pass your own [client] to share connection pools or to inject a
+/// `MockClient` in tests; otherwise an internal client is created and
+/// closed by [dispose].
 class RestSyncBackend implements SyncBackend {
   /// Base URL of the sync server, e.g. `https://api.example.com/sync`.
   final String baseUrl;
@@ -28,12 +36,19 @@ class RestSyncBackend implements SyncBackend {
   /// Per-request timeout. Defaults to 15s.
   final Duration timeout;
 
+  /// HTTP client. Defaults to an internal `http.Client()`.
+  final http.Client client;
+
+  final bool _ownsClient;
+
   /// Creates an HTTP backend targeting [baseUrl].
-  const RestSyncBackend({
+  RestSyncBackend({
     required this.baseUrl,
     this.headers = const {},
     this.timeout = const Duration(seconds: 15),
-  });
+    http.Client? client,
+  })  : client = client ?? http.Client(),
+        _ownsClient = client == null;
 
   Uri _uri(String path, [Map<String, String>? query]) {
     final base = baseUrl.endsWith('/')
@@ -42,62 +57,50 @@ class RestSyncBackend implements SyncBackend {
     return Uri.parse('$base$path').replace(queryParameters: query);
   }
 
+  Never _throwForStatus(String what, Uri uri, http.Response res) {
+    throw http.ClientException(
+        '$what failed: ${res.statusCode} ${res.body}', uri);
+  }
+
   @override
   Future<void> push(List<SyncChange> changes) async {
-    final client = HttpClient();
-    try {
-      final req = await client
-          .postUrl(_uri('/push'))
-          .timeout(timeout);
-      req.headers.contentType = ContentType.json;
-      headers.forEach(req.headers.set);
-      req.write(jsonEncode({
-        'changes': changes.map((c) => c.toJson()).toList(),
-      }));
-      final res = await req.close().timeout(timeout);
-      final body = await res.transform(utf8.decoder).join();
-      if (res.statusCode < 200 || res.statusCode >= 300) {
-        throw HttpException(
-            'push failed: ${res.statusCode} $body', uri: req.uri);
-      }
-    } finally {
-      client.close(force: true);
+    final uri = _uri('/push');
+    final res = await client
+        .post(uri,
+            headers: {'content-type': 'application/json', ...headers},
+            body: jsonEncode({
+              'changes': changes.map((c) => c.toJson()).toList(),
+            }))
+        .timeout(timeout);
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      _throwForStatus('push', uri, res);
     }
   }
 
   @override
   Future<List<SyncChange>> pull(SyncPullRequest request) async {
-    final client = HttpClient();
-    try {
-      final req = await client
-          .getUrl(_uri('/pull', {
-            'table': request.table,
-            if (request.since != null)
-              'since': request.since!.toUtc().toIso8601String(),
-            'limit': '${request.limit}',
-          }))
-          .timeout(timeout);
-      headers.forEach(req.headers.set);
-      final res = await req.close().timeout(timeout);
-      final body = await res.transform(utf8.decoder).join();
-      if (res.statusCode < 200 || res.statusCode >= 300) {
-        throw HttpException(
-            'pull failed: ${res.statusCode} $body', uri: req.uri);
-      }
-      final decoded = jsonDecode(body) as Map<String, Object?>;
-      final list = (decoded['changes'] as List? ?? const [])
-          .cast<Map<String, Object?>>();
-      final out =
-          list.map((j) => SyncChange.fromJson(j)).toList()
-            ..sort((a, b) => a.updatedAt.compareTo(b.updatedAt));
-      return out;
-    } finally {
-      client.close(force: true);
+    final uri = _uri('/pull', {
+      'table': request.table,
+      if (request.since != null)
+        'since': request.since!.toUtc().toIso8601String(),
+      'limit': '${request.limit}',
+    });
+    final res = await client.get(uri, headers: {...headers}).timeout(timeout);
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      _throwForStatus('pull', uri, res);
     }
+    final decoded = jsonDecode(res.body) as Map<String, Object?>;
+    final list = (decoded['changes'] as List? ?? const [])
+        .cast<Map<String, Object?>>();
+    final out = list.map((j) => SyncChange.fromJson(j)).toList()
+      ..sort((a, b) => a.updatedAt.compareTo(b.updatedAt));
+    return out;
   }
 
   @override
-  Future<void> dispose() async {}
+  Future<void> dispose() async {
+    if (_ownsClient) client.close();
+  }
 }
 
 /// In-process custom backend for tests and adapters that already speak

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.2
+
+- `RestSyncBackend` is now built on `package:http`, so it works on every
+  Dart and Flutter target including the web (previously `dart:io`, which
+  excluded web). Accepts an optional `http.Client` for shared pools and
+  `MockClient` tests.
+- Removed the unused `meta` dependency.
+- Docs: fixed cross-library doc links so `dartdoc` resolves cleanly.
+
 ## 0.1.1
 
 - Docs: rewrote README (tour, internals, backend comparison, Flutter wiring,

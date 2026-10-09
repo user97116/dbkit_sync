@@ -266,6 +266,8 @@ Recommended table shape: `id text primary key`, `updated_at timestamptz default 
 
 ### REST (any custom HTTP server)
 
+Built on `package:http`, so it works on all platforms including web:
+
 ```dart
 RestSyncBackend(baseUrl: 'https://api.example.com/sync', headers: {
   'Authorization': 'Bearer ...',

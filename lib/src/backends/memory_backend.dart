@@ -7,7 +7,7 @@ import '../sync_change.dart';
 /// Ephemeral "server" kept in process memory.
 ///
 /// Stores the latest document per `table#id` plus delete tombstones so
-/// pulls propagate deletes. Two [DbSync] instances sharing one
+/// pulls propagate deletes. Two `DbSync` instances sharing one
 /// [MemorySyncBackend] simulate two devices syncing through a server.
 ///
 /// ```dart
