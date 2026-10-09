@@ -20,7 +20,6 @@ dev_dependencies:
 
 topics:
   - sqlite
-  - database
   - sync
   - offline-first
   - firebase
