@@ -6,7 +6,6 @@ import 'dart:convert';
 import 'package:dbkit/dbkit.dart';
 
 import 'sync_change.dart';
-import 'utils.dart';
 
 /// Local table holding queued (not yet pushed) changes.
 const String kOutboxTable = '_sync_outbox';
@@ -143,7 +142,7 @@ class OutboxStore {
 
   static Object? _encodable(Object? v) {
     if (v is DateTime) return v.toIso8601String();
-    if (v is Enum) return (v as Enum).name;
+    if (v is Enum) return v.name;
     return v.toString();
   }
 }

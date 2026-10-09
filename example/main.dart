@@ -1,17 +1,23 @@
-/// dbkit_sync tour: offline writes, push/pull, conflicts, custom backends.
+/// dbkit_sync tour: offline writes, pull-then-push, deletes, custom backends.
+///
+/// Run with: `dart run example/main.dart`
 library;
 
 import 'package:dbkit/dbkit.dart';
 import 'package:dbkit_sync/dbkit_sync.dart';
 
-Future<void> main() async {
-  // 1. Local db + schema. Use TEXT ids for sync (no autoincrement clashes).
-  final db = Db.memory();
+Future<void> _schema(Db db) async {
   await db.createTable('notes', (t) {
     t.text('id').primary();
     t.text('body').nullable();
     t.text('updated_at').nullable();
   });
+}
+
+Future<void> main() async {
+  // 1. Local db + schema. Use TEXT ids for sync (no autoincrement clashes).
+  final db = Db.memory();
+  await _schema(db);
 
   // 2. Pick a backend. MemorySyncBackend is a fake server; swap in
   //    Firestore / Supabase / REST / custom without changing engine code.
@@ -29,18 +35,13 @@ Future<void> main() async {
       {'id': newSyncId(), 'body': 'offline first', 'updated_at': nowIso()});
   print('pending: ${await sync.pendingCount()}');
 
-  // 4. Pull, then push. Second device sees the row after it syncs.
+  // 4. Pull, then push. A second device sees the row after it syncs.
   await sync.sync();
   print('pending after sync: ${await sync.pendingCount()}');
 
   final dbB = Db.memory();
-  await dbB.createTable('notes', (t) {
-    t.text('id').primary();
-    t.text('body').nullable();
-    t.text('updated_at').nullable();
-  });
-  final syncB =
-      await DbSync.init(db: dbB, backend: server, tables: ['notes']);
+  await _schema(dbB);
+  final syncB = await DbSync.init(db: dbB, backend: server, tables: ['notes']);
   await syncB.sync();
   print('device B rows: ${await dbB.table('notes').selectAll()}');
 
@@ -56,11 +57,11 @@ Future<void> main() async {
     onPush: (changes) async => print('push ${changes.length} change(s)'),
     onPull: (req) async => <SyncChange>[],
   );
-  final syncC =
-      await DbSync.init(db: db, backend: custom, tables: ['notes']);
+  final syncC = await DbSync.init(db: db, backend: custom, tables: ['notes']);
   await syncC.sync();
 
-  // 7. Firestore / Supabase wiring lives in your app (no SDK dep here):
+  // 7. Firestore / Supabase wiring lives in your app (no SDK dep here) —
+  //    see README §7 and example/custom_backend.dart:
   //
   // FirestoreSyncBackend(
   //   write: (t, id, data) =>

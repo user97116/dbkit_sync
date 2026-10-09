@@ -101,7 +101,7 @@ class SyncTrackingAdapter implements DbAdapter {
 
   static Object? _encodable(Object? v) {
     if (v is DateTime) return v.toIso8601String();
-    if (v is Enum) return (v as Enum).name;
+    if (v is Enum) return v.name;
     return v.toString();
   }
 
