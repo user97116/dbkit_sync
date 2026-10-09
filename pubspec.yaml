@@ -1,0 +1,28 @@
+name: dbkit_sync
+description: >-
+  Offline-first sync for dbkit: outbox + pull engine with pluggable backends
+  for Firebase (Firestore), Supabase, REST, or any custom server.
+version: 0.1.0
+repository: https://github.com/user97116/dbkit
+issue_tracker: https://github.com/user97116/dbkit/issues
+homepage: https://github.com/user97116/dbkit
+
+environment:
+  sdk: ^3.0.0
+
+dependencies:
+  dbkit:
+    path: ../dbkit
+  meta: ^1.9.0
+
+dev_dependencies:
+  test: ^1.25.0
+  lints: ^5.0.0
+
+topics:
+  - sqlite
+  - database
+  - sync
+  - offline-first
+  - firebase
+  - supabase

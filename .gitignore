@@ -1,0 +1,14 @@
+# ---> Dart build artifacts — never commit, never publish
+.dart_tool/
+build/
+.pub-cache/
+
+# pubspec.lock is for apps; libraries resolve fresh
+pubspec.lock
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.iml
